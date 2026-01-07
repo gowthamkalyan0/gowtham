@@ -1,0 +1,120 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyOCOYwohPXl1SamAuubDBeO",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/gowthamkalyan0/gowtham/blob/main/2.%20Candidate%20elimination.py%20r\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import copy\n",
+        "\n",
+        "def initialize_hypotheses(n):\n",
+        "    # S_hyp is the most specific hypothesis, initialized with '0' for all attributes.\n",
+        "    S_hyp = ['0'] * n\n",
+        "    # G_set is a list of maximally general hypotheses, initially one hypothesis ['?', '?', ..., '?'].\n",
+        "    G_set = [['?'] * n]\n",
+        "    return S_hyp, G_set\n",
+        "\n",
+        "def is_consistent_with_example(hypothesis, example_features):\n",
+        "    \"\"\"\n",
+        "    Checks if a hypothesis covers an example (predicts positive).\n",
+        "    A hypothesis h covers an example x if for every attribute i,\n",
+        "    h[i] == '?' or h[i] == x[i].\n",
+        "    \"\"\"\n",
+        "    for i in range(len(hypothesis)):\n",
+        "        if hypothesis[i] != '?' and hypothesis[i] != example_features[i]:\n",
+        "            return False\n",
+        "    return True\n",
+        "\n",
+        "def candidate_elimination(training_data):\n",
+        "    num_attributes = len(training_data[0]) - 1\n",
+        "    S_hyp, G_set = initialize_hypotheses(num_attributes)\n",
+        "\n",
+        "    for example in training_data:\n",
+        "        features = example[:-1]\n",
+        "        label = example[-1]\n",
+        "\n",
+        "        if label == 'Yes': # Positive example\n",
+        "            # Update S_hyp (Specific Hypothesis)\n",
+        "            # Generalize S_hyp to be consistent with the positive example\n",
+        "            for i in range(num_attributes):\n",
+        "                if S_hyp[i] == '0':\n",
+        "                    S_hyp[i] = features[i]\n",
+        "                elif S_hyp[i] != '?' and S_hyp[i] != features[i]:\n",
+        "                    S_hyp[i] = '?'\n",
+        "\n",
+        "            # Filter G_set (General Hypotheses)\n",
+        "            # Remove any g in G_set that is inconsistent with the positive example.\n",
+        "            # A g is inconsistent if it does NOT cover the positive example.\n",
+        "            G_set = [g for g in G_set if is_consistent_with_example(g, features)]\n",
+        "\n",
+        "        else: # Negative example (label == 'No')\n",
+        "            # S_hyp is not affected by negative examples in standard CE.\n",
+        "            # Filter G_set (General Hypotheses)\n",
+        "            # Remove any g in G_set that covers the negative example (i.e., predicts 'Yes' for a 'No' example).\n",
+        "            # If g covers the negative example, it's too general and must be removed or specialized.\n",
+        "            # For simplicity, we just remove it here, not generating specializations.\n",
+        "            G_set = [g for g in G_set if not is_consistent_with_example(g, features)]\n",
+        "\n",
+        "    # Final cleanup: Remove any G hypotheses that are not more general than S_hyp\n",
+        "    # This check ensures that all remaining G hypotheses are valid upper bounds for S_hyp.\n",
+        "    G_final = [g for g in G_set if all(g[i] == '?' or g[i] == S_hyp[i] for i in range(num_attributes))]\n",
+        "\n",
+        "    # Return S_hyp and the filtered G_final set. The problem implies a list of hypotheses as output.\n",
+        "    return [S_hyp] + G_final\n",
+        "\n",
+        "training_data = [\n",
+        "    ['Sunny', 'Warm', 'Normal', 'Strong', 'Warm', 'Same', 'Yes'],\n",
+        "    ['Sunny', 'Warm', 'High', 'Strong', 'Warm', 'Same', 'Yes'],\n",
+        "    ['Rainy', 'Cold', 'High', 'Weak', 'Cool', 'Change', 'No'],\n",
+        "    ['Sunny', 'Warm', 'High', 'Strong', 'Cool', 'Change', 'Yes']\n",
+        "]\n",
+        "result_hypotheses = candidate_elimination(training_data)\n",
+        "print(\"Result Hypotheses:\")\n",
+        "for h in result_hypotheses:\n",
+        "    print(h)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "r73XlSbdcVLf",
+        "outputId": "be8920c1-3c7a-4381-cd05-352a4813ce57"
+      },
+      "execution_count": 15,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Result Hypotheses:\n",
+            "['Sunny', 'Warm', '?', 'Strong', '?', '?']\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
